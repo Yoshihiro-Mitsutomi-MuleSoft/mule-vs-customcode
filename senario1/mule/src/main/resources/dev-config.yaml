@@ -1,0 +1,6 @@
+mySql:
+  host: "cloud-services.demos.mulesoft.com"
+  port: "30243"
+  username: "ymitsutomi"
+  password: "M_u_l_e_S_0_f_t1"
+  database: "work"

@@ -1,0 +1,617 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:bti="http://www.mulesoft.org/schema/mule/ee/bti" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd  http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd http://www.mulesoft.org/schema/mule/ee/bti http://www.mulesoft.org/schema/mule/ee/bti/current/mule-bti-ee.xsd">
+    <http:listener-config name="american-flights-api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="american-flights-api-config" api="american-flights-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <global-property doc:name="Global Property" doc:id="95e88733-0e66-4c3f-9904-9d35c1aca106" name="env" value="dev" />
+    <configuration-properties doc:name="Configuration properties" doc:id="49446b4a-12c6-4609-8964-b441b468706e" file="${env}-config.yaml" />
+    <db:config name="Database_Config" doc:name="Database Config" doc:id="ae349051-ee4b-401f-a6cd-dbc8dc9c0cc2">
+        <db:my-sql-connection host="${mySql.host}" port="${mySql.port}" user="${mySql.username}" password="${mySql.password}" database="${mySql.database}" />
+    </db:config>
+    <ee:object-store-caching-strategy name="Caching_Strategy" doc:name="Caching Strategy" doc:id="e48b3895-6bba-4d5f-bcb8-62040e000104">
+        <os:private-object-store entryTtl="60" entryTtlUnit="MINUTES" />
+    </ee:object-store-caching-strategy>
+    <bti:transaction-manager doc:name="Bitronix Transaction Manager" doc:id="68aa4143-5af9-4bcf-8f27-5e920f434461" />
+    <flow name="american-flights-api-main">
+        <http:listener config-ref="american-flights-api-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="american-flights-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="american-flights-api-console">
+        <http:listener config-ref="american-flights-api-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="american-flights-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="put:\flights\(ID):application\json:american-flights-api-config">
+        <ee:transform doc:name="Save urlParam into ID">
+            <ee:variables>
+                <ee:set-variable variableName="ID">attributes.uriParams.'ID'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform doc:name="save payload to wkPayload" doc:id="b27b029a-b02e-450a-89a6-7f394dc03d70">
+            <ee:variables>
+                <ee:set-variable variableName="wkPayload"><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <choice doc:name="Choice" doc:id="a811b085-343b-4c78-9c24-5c2dbabfcc35" >
+			<when expression="#[vars.wkPayload.ID != null]">
+				<try doc:name="Try" doc:id="dc1149cb-33b2-49e3-a173-9ece5cb9b475" >
+					<logger level="INFO" doc:name="Logger" doc:id="96c3a37c-df6c-4e9a-8684-81cb66a436f6" message="#[%dw 2.0 output application/json --- {a: vars.wkPayload.ID, b: vars.ID as String}]"/>
+					<validation:is-true doc:name="Is true" doc:id="25765c82-d698-4f3c-8968-cee491951f3d" expression="#[vars.wkPayload.ID as String == vars.ID as String]" />
+					<error-handler >
+						<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="8b9fa399-25d0-4410-b9e1-22f736f4b1a4" >
+							<set-variable value="409" doc:name="Set Variable - httpStatus=40" doc:id="a66ea4aa-933e-43a8-a354-2ac4a4f7a218" variableName="httpStatus" />
+							<ee:transform doc:name="set response" doc:id="c8789400-ffc6-429d-bbb0-fc59c060d044" >
+								<ee:message >
+									<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	msg: "URI param に指定された ID と Request Body に指定された ID に矛盾があります。"
+}]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+						</on-error-propagate>
+					</error-handler>
+				</try>
+			</when>
+		</choice>
+		<flow-ref doc:name="Flow Reference - ID-existance-check" doc:id="1f87ac0e-12f1-4376-9572-4721b08bcf8d" name="ID-existance-check-Flow" />
+        <ee:transform doc:name="save pre-updated Data into oldPayload" doc:id="c1fa8e34-af1f-4ddc-89e9-215d383ac2fe" >
+			<ee:variables >
+				<ee:set-variable variableName="oldPayload" ><![CDATA[%dw 2.0
+output application/json
+---
+(payload as Array map ( payload01 , indexOfPayload01 ) -> {
+	code: payload01.flightCode default "",
+	price: payload01.price default 0,
+	departureDate: payload01.departureDate as String {format: "yyyy/MM/dd"} default "",
+	origin: payload01.originAirport default "",
+	destination: payload01.destinationAirport default "",
+	emptySeats: (payload01.totalSeats default 0) - (payload01.bookedSeats default 0),
+	plane: {
+		"type": payload01.planeType,
+		totalSeats: payload01.totalSeats
+	}
+})[0]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference - handle update" doc:id="9b65838a-eed4-46a2-bbca-65f380b63fbb" name="put-handle-update-Flow"/>
+
+		<until-successful maxRetries="3" doc:name="Until Successful" doc:id="5e13146c-9de7-401f-a9cb-46a5ad4f9a42" millisBetweenRetries="1000" >
+			<db:select doc:name="Select(Updated Data)" doc:id="19414999-1406-48ac-8f0d-89881bd462a0" config-ref="Database_Config" >
+				<db:sql ><![CDATA[select 
+f.flightId, f.flightCode, f.price, f.departureDate, f.originAirport, 
+f.destinationAirport, f.bookedSeats, 
+p.planeType, p.totalSeats 
+from Flight f inner join Plane p 
+on f.planeId = p.planeId
+where f.flightId = :wkId]]></db:sql>
+				<db:input-parameters ><![CDATA[#[{wkId: vars.ID}]]]></db:input-parameters>
+			</db:select>
+		</until-successful>
+
+		<ee:transform doc:name="format new Data" doc:id="0c1b5ca6-185d-493a-a7f2-7be832b122ac">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+(payload map ( payload01 , indexOfPayload01 ) -> {
+	code: payload01.flightCode default "",
+	price: payload01.price default 0,
+	departureDate: payload01.departureDate as String {format: "yyyy/MM/dd"} default "",
+	origin: payload01.originAirport default "",
+	destination: payload01.destinationAirport default "",
+	emptySeats: (payload01.totalSeats default 0) - (payload01.bookedSeats default 0),
+	plane: {
+		"type": payload01.planeType,
+		totalSeats: payload01.totalSeats
+	}
+})[0]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="set response">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+import diff from dw::util::Diff
+output application/json
+var newData = payload
+var oldData = vars.oldPayload
+---
+{
+  "affectedColumns": (oldData diff newData).diffs.path map (
+  	$ replace /\(root\)./ with("")
+  ),
+  "beforeUpdate": oldData,
+  "afterUpdate": newData
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="delete:\flights\(ID):american-flights-api-config">
+        <ee:transform doc:name="Save urlParam into ID">
+            <ee:variables>
+                <ee:set-variable variableName="ID">attributes.uriParams.'ID'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="Flow Reference - ID-existance-check" doc:id="54c25fb2-dbd5-48cb-a76d-79018a2c8e15" name="ID-existance-check-Flow" />
+        <until-successful maxRetries="3" doc:name="Until Successful" doc:id="470015d9-86ac-4a6b-80a0-c9b718d464b0" millisBetweenRetries="1000">
+            <db:delete doc:name="Delete" doc:id="acf85ba8-19a6-4c3d-995f-ac405d20acf1" config-ref="Database_Config">
+                <db:sql><![CDATA[delete from Flight where planeId = :wkId]]></db:sql>
+                <db:input-parameters><![CDATA[#[{wkId: vars.ID}]]]></db:input-parameters>
+            </db:delete>
+        </until-successful>
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "Flight record has been deleted. ID: " ++ vars.ID
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\flights:american-flights-api-config">
+        <ee:transform doc:name="save Query Paramters on wkQp" doc:id="03ea5f56-52cb-40a9-9ee2-eb1e95ce41f1">
+            <ee:variables>
+                <ee:set-variable variableName="wkQp"><![CDATA[%dw 2.0
+output application/json
+---
+attributes.queryParams]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform doc:name="set SQL on payload" doc:id="f954428c-cd55-47af-9beb-5f3d8ae450f3">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+import * from dw::core::Objects
+output application/json
+var empRes = isEmpty(entrySet(vars.wkQp))
+var baseSql =  "select " ++
+"f.flightId, f.flightCode, f.price, f.departureDate, f.originAirport, " ++
+"f.destinationAirport, f.bookedSeats, " ++
+"p.planeType, p.totalSeats " ++
+"from Flight f inner join Plane p " ++
+"on f.planeId = p.planeId"
+---
+if (empRes)
+    {sql: baseSql}
+else {
+    sql: baseSql ++ " where f.destinationAirport ='" ++ vars.wkQp.destination default " " ++ "'"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <logger level="INFO" doc:name="Logger" doc:id="b2681a8b-5c74-44bb-9f15-9df1374947c5" message="#[vars.wkSql.sql]" />
+        <ee:cache doc:name="Cache" doc:id="e7fe2258-876d-4fdb-860b-df84d9a39e6d" cachingStrategy-ref="Caching_Strategy">
+            <until-successful maxRetries="3" doc:name="Until Successful" doc:id="d12a0d7d-375a-4767-b5bd-861d8403048b" millisBetweenRetries="1000">
+                <db:select doc:name="Select" doc:id="82d71d07-2718-4844-b867-7acebfac2194" config-ref="Database_Config">
+                    <db:sql><![CDATA[#[payload.sql]]]></db:sql>
+                </db:select>
+            </until-successful>
+        </ee:cache>
+        <flow-ref doc:name="Flow Reference - check emply" doc:id="74d29133-9259-42d2-89fb-ec6a7149d4ba" name="check-empty-Flow" />
+        <ee:transform doc:name="set response data">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	ID: payload01.flightId,
+	code: payload01.flightCode default "",
+	price: payload01.price default 0,
+	departureDate: payload01.departureDate as String {format: "yyyy/MM/dd"} default "",
+	origin: payload01.originAirport default "",
+	destination: payload01.destinationAirport default "",
+	emptySeats: (payload01.totalSeats default 0) - (payload01.bookedSeats default 0),
+	plane: {
+		"type": payload01.planeType,
+		totalSeats: payload01.totalSeats
+	}
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\flights\(ID):american-flights-api-config">
+        <ee:transform doc:name="Save urlParam into ID">
+            <ee:variables>
+                <ee:set-variable variableName="ID">attributes.uriParams.'ID'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="Flow Reference - ID-existance-check" doc:id="4fb7c9cd-bbbf-451f-ba71-826ebfa1c558" name="ID-existance-check-Flow" />
+        <ee:transform doc:name="set response data" doc:id="f9fada5d-d703-41a4-93fe-7369490f31af">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+(payload map ( payload01 , indexOfPayload01 ) -> {
+	ID: payload01.flightId,
+	code: payload01.flightCode default "",
+	price: payload01.price default 0,
+	departureDate: payload01.departureDate as String {format: "yyyy/MM/dd"} default "",
+	origin: payload01.originAirport default "",
+	destination: payload01.destinationAirport default "",
+	emptySeats: (payload01.totalSeats default 0) - (payload01.bookedSeats default 0),
+	plane: {
+		"type": payload01.planeType,
+		totalSeats: payload01.totalSeats
+	}
+})[0]]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\flights:application\json:american-flights-api-config">
+        <ee:transform doc:name="save payload to wkPayload" doc:id="b34b6e13-732c-45f4-a174-cb66f727f57c">
+            <ee:variables>
+                <ee:set-variable variableName="wkPayload"><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="Flow Reference - check-ID" doc:id="055e4193-8e20-42ab-b662-0635aec0ac45" name="post-check-ID-Flow" />
+        <flow-ref doc:name="Flow Reference - handle Insertion" doc:id="67484474-91b2-4a21-b017-3d6fd0162b43" name="post-handle-insertion-Flow" />
+        <ee:transform doc:name="set response data">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "Flight record has been added. Its id is: " ++ valuesOf(payload[0])[0] as String
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="ID-existance-check-Flow" doc:id="e4bb0c26-4bae-42e3-bff2-d4162a3e74f2">
+        <until-successful maxRetries="3" doc:name="Until Successful" doc:id="246b9cef-5207-4474-8736-cd11a1e2baf3" millisBetweenRetries="1000">
+            <db:select doc:name="Select" doc:id="1098e770-f557-457c-9a97-e1b6e3148930" config-ref="Database_Config">
+                <db:sql><![CDATA[select 
+f.flightId, f.flightCode, f.price, f.departureDate, f.originAirport, 
+f.destinationAirport, f.bookedSeats, 
+p.planeType, p.totalSeats 
+from Flight f inner join Plane p 
+on f.planeId = p.planeId
+where f.flightId = :wkId]]></db:sql>
+                <db:input-parameters><![CDATA[#[{wkId: vars.ID}]]]></db:input-parameters>
+            </db:select>
+        </until-successful>
+        <flow-ref doc:name="Flow Reference - check emply" doc:id="18e03cea-c435-4369-8bd2-648b3c4f1e1b" name="check-empty-Flow" />
+    </flow>
+    <flow name="check-empty-Flow" doc:id="a5d12458-0b57-4703-ba92-e588bfe66cc3">
+        <try doc:name="Try" doc:id="9a78500f-db19-4199-b112-f59332dfc22b">
+            <validation:is-not-empty-collection doc:name="Is not empty collection" doc:id="b9950d82-b3fd-4be4-a1d3-476571cb2395" />
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="dd02757c-21d9-4b1c-a719-489dbc865115">
+                    <set-variable value="404" doc:name="Set Variable - httpStatus=404" doc:id="65eb5f4d-3a4b-434c-848d-b8fd91cdb964" variableName="httpStatus" />
+                    <choice doc:name="Choice" doc:id="37331a55-5ca2-4f23-8091-c4ab5d692660">
+                        <when expression="#[vars.ID != null]">
+                            <ee:transform doc:name="set response" doc:id="e2ebbc42-b689-4c07-8e99-2c7d20979da4">
+                                <ee:message>
+                                    <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	msg: "ID: " ++ vars.ID as String default "" ++ " に紐づくレコードは存在しません。"
+}]]></ee:set-payload>
+                                </ee:message>
+                            </ee:transform>
+                        </when>
+                        <otherwise>
+                            <ee:transform doc:name="set response" doc:id="505998af-a756-4a2c-bc9a-cf419a03ffd9">
+                                <ee:message>
+                                    <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	msg: "検索条件に紐づくレコードは存在しません。"
+}]]></ee:set-payload>
+                                </ee:message>
+                            </ee:transform>
+                        </otherwise>
+                    </choice>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </flow>
+    <flow name="post-check-ID-Flow" doc:id="2726658b-229c-4eb6-ac91-af5f71771973">
+        <choice doc:name="Choice" doc:id="93234a58-ca19-40cb-94d4-10bb4afe2963">
+            <when expression="#[vars.wkPayload.ID != null]">
+                <until-successful maxRetries="3" doc:name="Until Successful" doc:id="05880958-fb94-418d-9165-e0ed415897fd" millisBetweenRetries="1000">
+                    <db:select doc:name="Select" doc:id="b5a96b3f-9f3c-4642-a954-d8787ea390e5" config-ref="Database_Config">
+                        <db:sql><![CDATA[select f.flightId
+from Flight f
+where f.flightId = :wkId]]></db:sql>
+                        <db:input-parameters><![CDATA[#[{wkId: vars.wkPayload.ID}]]]></db:input-parameters>
+                    </db:select>
+                </until-successful>
+                <try doc:name="Try" doc:id="38e92390-e3ee-4410-a5be-f8200cb3fac5">
+                    <validation:is-empty-collection doc:name="Is empty collection" doc:id="6f32b8fc-a89a-4e50-87bd-2df8ed5f1bb4" />
+                    <error-handler>
+                        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="0742fc24-0ce4-4075-ab14-f0d54a0b9aaa">
+                            <set-variable value="409" doc:name="Set Variable - httpStatus=409" doc:id="65abc90b-5a00-44e8-a796-01c11ce23e21" variableName="httpStatus" />
+                            <ee:transform doc:name="set response" doc:id="3928dc9a-8d26-43cc-83ee-3668902208a6">
+                                <ee:message>
+                                    <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	msg: "ID: " ++ vars.wkPayload.ID as String default "" ++ " に紐づくレコードは既に存在します。"
+}]]></ee:set-payload>
+                                </ee:message>
+                            </ee:transform>
+                            <logger level="INFO" doc:name="Logger" doc:id="8cdcfd97-355e-420a-8d1f-d60db674c0fc" message="#[payload]" />
+                        </on-error-propagate>
+                    </error-handler>
+                </try>
+            </when>
+        </choice>
+    </flow>
+    <flow name="post-handle-insertion-Flow" doc:id="ff1d0c0c-1338-406e-9b1e-e377b319a89a">
+        <until-successful maxRetries="3" doc:name="Until Successful" doc:id="3da47e83-a2c3-4cca-ab59-6866a2642f45" millisBetweenRetries="1000">
+            <db:select doc:name="Select(plane rec)" doc:id="bcf099fe-924b-43da-b97d-4bb2a66f6c93" config-ref="Database_Config">
+                <db:sql><![CDATA[select planeId, planeType, totalSeats
+from Plane
+where planeType = :wkPlaneType and totalSeats=:wkTotalSeats]]></db:sql>
+                <db:input-parameters><![CDATA[#[{
+	wkPlaneType: vars.wkPayload.plane."type",
+	wkTotalSeats: vars.wkPayload.plane.totalSeats
+}]]]></db:input-parameters>
+            </db:select>
+        </until-successful>
+        <ee:transform doc:name="save Plane Info into wkPlane" doc:id="8d8aa22e-115c-4085-85eb-4439bfb2e59d">
+            <ee:variables>
+                <ee:set-variable variableName="wkPlane"><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <choice doc:name="Choice" doc:id="d2180118-4090-417b-b930-4084d7c471d9">
+            <when expression="#[sizeOf(vars.wkPlane) == 0]">
+                <logger level="INFO" doc:name="Logger" doc:id="57624385-66d5-4c5f-89e8-6dc226e7a1a0" message="2 phase commit" />
+                <until-successful maxRetries="3" doc:name="Until Successful" doc:id="d769e509-dac3-4a7d-b2b4-33aa79d4289e" millisBetweenRetries="1000">
+                    <try doc:name="Try" doc:id="6e5ce360-171f-4f92-aae1-e0914246b229" transactionType="XA">
+                        <db:insert doc:name="Insert in to plane" doc:id="7b2e4482-f0b3-4519-bd28-349369f5cd90" config-ref="Database_Config">
+                            <db:sql><![CDATA[insert into Plane(planeType, totalSeats)
+values (:planeType, :totalSeats)]]></db:sql>
+                            <db:input-parameters><![CDATA[#[{
+	planeType: vars.wkPayload.plane."type",
+	totalSeats:	vars.wkPayload.plane.totalSeats
+}]]]></db:input-parameters>
+                        </db:insert>
+                        <db:select doc:name="Select(plane ID)" doc:id="3e0f5c1f-8e06-44d2-8a86-f6781381f007" config-ref="Database_Config">
+                            <db:sql><![CDATA[select max(planeId) from Plane p]]></db:sql>
+                        </db:select>
+                        <db:insert doc:name="Insert in to flight" doc:id="f9aa8350-db75-4eb8-8cc2-0b90b4aa01db" config-ref="Database_Config">
+                            <db:sql><![CDATA[insert into Flight(flightCode, price, departureDate, originAirport, destinationAirport, bookedSeats, planeId)
+values (:flightCode, :price, :departureDate, :originAirport, :destinationAirport, :bookedSeats, :planeId)]]></db:sql>
+                            <db:input-parameters><![CDATA[#[{
+	flightCode: vars.wkPayload.code,
+	price: vars.wkPayload.price,
+	departureDate: vars.wkPayload.departureDate,
+	originAirport: vars.wkPayload.origin,
+	destinationAirport: vars.wkPayload.destination,
+	bookedSeats: vars.wkPayload.plane.totalSeats - vars.wkPayload.emptySeats,
+	planeId: valuesOf(payload[0])[0]
+	
+}]]]></db:input-parameters>
+                        </db:insert>
+                    </try>
+                </until-successful>
+            </when>
+            <otherwise>
+                <until-successful maxRetries="5" doc:name="Until Successful" doc:id="0c25b5c1-4d62-45d8-b5c0-b0a6467e7e36">
+                    <db:insert doc:name="Insert in to flight" doc:id="47e1b803-1b3d-4fe4-b577-0f301567fdb3" config-ref="Database_Config">
+                        <db:sql><![CDATA[insert into Flight(flightCode, price, departureDate, originAirport, destinationAirport, bookedSeats, planeId)
+values (:flightCode, :price, :departureDate, :originAirport, :destinationAirport, :bookedSeats, :planeId)]]></db:sql>
+                        <db:input-parameters><![CDATA[#[{
+	flightCode: vars.wkPayload.code,
+	price: vars.wkPayload.price,
+	departureDate: vars.wkPayload.departureDate,
+	originAirport: vars.wkPayload.origin,
+	destinationAirport: vars.wkPayload.destination,
+	bookedSeats: vars.wkPayload.plane.totalSeats - vars.wkPayload.emptySeats,
+	planeId: vars.wkPlane[0].planeId
+	
+}]]]></db:input-parameters>
+                    </db:insert>
+                </until-successful>
+            </otherwise>
+        </choice>
+        <until-successful maxRetries="3" doc:name="Until Successful" doc:id="41cc66b2-cf32-437f-9d99-9c72063139ad" millisBetweenRetries="1000">
+			<db:select doc:name="Select(Flight ID)" doc:id="d501ef7f-f851-43be-acf2-ea8bf784492d" config-ref="Database_Config">
+            <db:sql><![CDATA[select max(flightId) from Flight f]]></db:sql>
+        </db:select>
+		</until-successful>
+    </flow>
+    
+    <flow name="put-handle-update-Flow" doc:id="3c82f49e-13f0-4e63-9992-57404bf8db67">
+        <until-successful maxRetries="3" doc:name="Until Successful" doc:id="b8fa122a-0e49-4661-95cd-9e5d70dc2826" millisBetweenRetries="1000">
+            <db:select doc:name="Select(plane rec)" doc:id="2f3d1489-d962-4538-b63e-2d645e655416" config-ref="Database_Config">
+                <db:sql><![CDATA[select planeId, planeType, totalSeats
+from Plane
+where planeType = :wkPlaneType and totalSeats=:wkTotalSeats]]></db:sql>
+                <db:input-parameters><![CDATA[#[{
+	wkPlaneType: vars.wkPayload.plane."type",
+	wkTotalSeats: vars.wkPayload.plane.totalSeats
+}]]]></db:input-parameters>
+            </db:select>
+        </until-successful>
+        <ee:transform doc:name="save Plane Info into wkPlane" doc:id="8ab0d66c-6b06-4fb9-90bf-372582374088">
+            <ee:variables>
+                <ee:set-variable variableName="wkPlane"><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <choice doc:name="Choice" doc:id="da679692-2f15-4952-81bb-10c9e193bcce">
+            <when expression="#[sizeOf(vars.wkPlane) == 0]">
+                <logger level="INFO" doc:name="Logger" doc:id="c86aae2e-442c-4c96-9aa1-e12698675b91" message="2 phase commit" />
+                <until-successful maxRetries="3" doc:name="Until Successful" doc:id="cd6d8cc2-c090-488a-9ceb-64b265082947" millisBetweenRetries="1000">
+                    <try doc:name="Try" doc:id="9c4375bf-9057-45c5-a54d-f453098612d1" transactionType="XA">
+                        <db:insert doc:name="Insert in to plane" doc:id="46393fe8-f1b7-48be-b688-9c9970eae1e9" config-ref="Database_Config">
+                            <db:sql><![CDATA[insert into Plane(planeType, totalSeats)
+values (:planeType, :totalSeats)]]></db:sql>
+                            <db:input-parameters><![CDATA[#[{
+	planeType: vars.wkPayload.plane."type",
+	totalSeats:	vars.wkPayload.plane.totalSeats
+}]]]></db:input-parameters>
+                        </db:insert>
+                        <db:select doc:name="Select(plane ID)" doc:id="3fdd5028-d451-413e-91b7-321afdfcf0be" config-ref="Database_Config">
+                            <db:sql><![CDATA[select max(planeId) from Plane p]]></db:sql>
+                        </db:select>
+						<db:update doc:name="Update Flight" doc:id="f6c7f4d7-1c4e-4986-b37f-16b491826a3b" config-ref="Database_Config" >
+							<db:sql ><![CDATA[update Flight
+set price=:price, departureDate = :departureDate,
+    originAirport = :originAirport, destinationAirport = :destinationAirport,
+    bookedSeats = :bookedSeats, planeId = :planeId
+where flightId = :wkId]]></db:sql>
+							<db:input-parameters ><![CDATA[#[{
+	price: vars.wkPayload.price,
+	departureDate: vars.wkPayload.departureDate,
+	originAirport: vars.wkPayload.origin,
+	destinationAirport: vars.wkPayload.destination,
+	bookedSeats: vars.wkPayload.plane.totalSeats - vars.wkPayload.emptySeats,
+	planeId: valuesOf(payload[0])[0],
+	wkId: vars.ID as Number
+}]]]></db:input-parameters>
+						</db:update>
+                    </try>
+                </until-successful>
+            </when>
+            <otherwise>
+                <until-successful maxRetries="5" doc:name="Until Successful" doc:id="6e43367c-4c07-4c0d-8431-eee5d4c966e6">
+					<db:update doc:name="Update Flight" doc:id="8b173d1c-cac9-4ce0-8bb2-92e56cba5133" config-ref="Database_Config">
+						<db:sql ><![CDATA[update Flight
+set price=:price, departureDate = :departureDate,
+    originAirport = :originAirport, destinationAirport = :destinationAirport,
+    bookedSeats = :bookedSeats
+where flightId = :wkId]]></db:sql>
+						<db:input-parameters ><![CDATA[#[{
+	price: vars.wkPayload.price,
+	departureDate: vars.wkPayload.departureDate,
+	originAirport: vars.wkPayload.origin,
+	destinationAirport: vars.wkPayload.destination,
+	bookedSeats: vars.wkPayload.plane.totalSeats - vars.wkPayload.emptySeats,
+	wkId: vars.ID as Number
+}]]]></db:input-parameters>
+					</db:update>
+                </until-successful>
+            </otherwise>
+        </choice>
+		
+    </flow>
+</mule>

@@ -34,7 +34,7 @@ Content-Type: application/json
 {
   "code": "GQ813",
   "price": 891,
-  "departureDate": "2019/2/20",
+  "departureDate": "2019/3/23",
   "origin": "ORD",
   "destination": "SFO",
   "emptySeats": 30,

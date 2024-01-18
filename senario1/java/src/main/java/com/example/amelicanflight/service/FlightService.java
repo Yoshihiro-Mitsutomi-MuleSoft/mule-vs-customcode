@@ -91,7 +91,7 @@ public class FlightService {
             flight.setPlane(savedPlane);
         }
         Flight savedFlight = flightRepository.save(flight);
-        var a = 1/0;
+
         return new DtoFlight(savedFlight);
     }
 

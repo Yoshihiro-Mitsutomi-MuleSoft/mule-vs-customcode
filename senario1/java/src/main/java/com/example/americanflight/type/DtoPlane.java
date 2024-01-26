@@ -1,6 +1,6 @@
-package com.example.amelicanflight.type;
+package com.example.americanflight.type;
 
-import com.example.amelicanflight.model.Plane;
+import com.example.americanflight.model.Plane;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;

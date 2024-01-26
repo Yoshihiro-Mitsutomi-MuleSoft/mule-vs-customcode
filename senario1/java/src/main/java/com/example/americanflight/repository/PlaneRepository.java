@@ -1,11 +1,11 @@
-package com.example.amelicanflight.repository;
+package com.example.americanflight.repository;
 
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.example.amelicanflight.model.Plane;
+import com.example.americanflight.model.Plane;
 
 /**
  * PlaneRepository

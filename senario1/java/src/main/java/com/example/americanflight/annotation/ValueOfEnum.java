@@ -1,4 +1,4 @@
-package com.example.amelicanflight.annotation;
+package com.example.americanflight.annotation;
 
 import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
 import static java.lang.annotation.ElementType.CONSTRUCTOR;
@@ -12,7 +12,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import com.example.amelicanflight.validator.ValueOfEnumValidator;
+import com.example.americanflight.validator.ValueOfEnumValidator;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;

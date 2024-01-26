@@ -1,4 +1,4 @@
-package com.example.amelicanflight.type;
+package com.example.americanflight.type;
 
 import java.math.BigDecimal;
 import java.util.HashMap;

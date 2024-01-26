@@ -1,4 +1,4 @@
-package com.example.amelicanflight;
+package com.example.americanflight;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -6,10 +6,10 @@ import org.springframework.retry.annotation.EnableRetry;
 
 @SpringBootApplication
 @EnableRetry
-public class AmelicanFlightApplication {
+public class AmericanFlightApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(AmelicanFlightApplication.class, args);
+		SpringApplication.run(AmericanFlightApplication.class, args);
 	}
 
 }

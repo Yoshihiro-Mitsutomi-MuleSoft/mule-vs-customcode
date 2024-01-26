@@ -1,4 +1,4 @@
-package com.example.amelicanflight;
+package com.example.americanflight;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,13 +15,13 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.amelicanflight.annotation.ValueOfEnum;
-import com.example.amelicanflight.constraint.DestinationConstraint;
-import com.example.amelicanflight.service.FlightService;
-import com.example.amelicanflight.type.DtoFlight;
-import com.example.amelicanflight.type.FlightsPostRequest;
-import com.example.amelicanflight.type.FlightsPostResponse;
-import com.example.amelicanflight.type.FlightsPutResponse;
+import com.example.americanflight.annotation.ValueOfEnum;
+import com.example.americanflight.constraint.DestinationConstraint;
+import com.example.americanflight.service.FlightService;
+import com.example.americanflight.type.DtoFlight;
+import com.example.americanflight.type.FlightsPostRequest;
+import com.example.americanflight.type.FlightsPostResponse;
+import com.example.americanflight.type.FlightsPutResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

@@ -1,10 +1,10 @@
-package com.example.amelicanflight;
+package com.example.americanflight;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class AmelicanFlightApplicationTests {
+class AmericanFlightApplicationTests {
 
 	@Test
 	void contextLoads() {

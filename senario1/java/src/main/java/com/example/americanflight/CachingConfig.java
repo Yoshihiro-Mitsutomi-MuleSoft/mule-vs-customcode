@@ -1,4 +1,4 @@
-package com.example.amelicanflight;
+package com.example.americanflight;
 
 import java.util.concurrent.TimeUnit;
 

@@ -1,4 +1,4 @@
-package com.example.amelicanflight.constraint;
+package com.example.americanflight.constraint;
 
 /**
  * API仕様に記載のEnumのバリデーションを行うための列挙型

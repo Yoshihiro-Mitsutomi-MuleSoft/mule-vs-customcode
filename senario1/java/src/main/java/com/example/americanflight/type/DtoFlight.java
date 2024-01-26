@@ -1,4 +1,4 @@
-package com.example.amelicanflight.type;
+package com.example.americanflight.type;
 
 import java.math.BigDecimal;
 import java.text.ParseException;
@@ -6,8 +6,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
 
-import com.example.amelicanflight.model.Flight;
-import com.example.amelicanflight.util.BigDecimalSerializer;
+import com.example.americanflight.model.Flight;
+import com.example.americanflight.util.BigDecimalSerializer;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 

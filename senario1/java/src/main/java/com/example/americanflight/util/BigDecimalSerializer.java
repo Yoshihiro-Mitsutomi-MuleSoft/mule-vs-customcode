@@ -1,4 +1,4 @@
-package com.example.amelicanflight.util;
+package com.example.americanflight.util;
 
 import java.io.IOException;
 import java.math.BigDecimal;

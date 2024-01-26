@@ -1,4 +1,4 @@
-package com.example.amelicanflight;
+package com.example.americanflight;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;

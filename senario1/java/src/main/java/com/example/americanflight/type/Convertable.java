@@ -1,4 +1,4 @@
-package com.example.amelicanflight.type;
+package com.example.americanflight.type;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

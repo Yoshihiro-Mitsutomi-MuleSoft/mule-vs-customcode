@@ -1,4 +1,4 @@
-package com.example.amelicanflight.service;
+package com.example.americanflight.service;
 
 import java.util.List;
 import java.util.Optional;
@@ -11,12 +11,12 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.amelicanflight.model.Flight;
-import com.example.amelicanflight.model.Plane;
-import com.example.amelicanflight.repository.FlightRepository;
-import com.example.amelicanflight.repository.PlaneRepository;
-import com.example.amelicanflight.type.DtoFlight;
-import com.example.amelicanflight.type.DtoPlane;
+import com.example.americanflight.model.Flight;
+import com.example.americanflight.model.Plane;
+import com.example.americanflight.repository.FlightRepository;
+import com.example.americanflight.repository.PlaneRepository;
+import com.example.americanflight.type.DtoFlight;
+import com.example.americanflight.type.DtoPlane;
 
 /**
  * FlightService

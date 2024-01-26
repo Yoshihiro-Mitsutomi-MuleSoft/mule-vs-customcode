@@ -1,4 +1,4 @@
-package com.example.amelicanflight.model;
+package com.example.americanflight.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

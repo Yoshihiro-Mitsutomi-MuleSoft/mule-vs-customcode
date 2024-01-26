@@ -1,9 +1,9 @@
-package com.example.amelicanflight.validator;
+package com.example.americanflight.validator;
 
 import java.util.List;
 import java.util.stream.Stream;
 
-import com.example.amelicanflight.annotation.ValueOfEnum;
+import com.example.americanflight.annotation.ValueOfEnum;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;

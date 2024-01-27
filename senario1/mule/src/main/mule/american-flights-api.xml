@@ -15,7 +15,8 @@
     <bti:transaction-manager doc:name="Bitronix Transaction Manager" doc:id="68aa4143-5af9-4bcf-8f27-5e920f434461" />
     <flow name="american-flights-api-main">
         <http:listener config-ref="american-flights-api-httpListenerConfig" path="/api/*">
-            <http:response statusCode="#[vars.httpStatus default 200]">
+            <reconnect />
+			<http:response statusCode="#[vars.httpStatus default 200]">
                 <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
             </http:response>
             <http:error-response statusCode="#[vars.httpStatus default 500]">
@@ -193,11 +194,11 @@ output application/json
 
 		<until-successful maxRetries="3" doc:name="Until Successful" doc:id="5e13146c-9de7-401f-a9cb-46a5ad4f9a42" millisBetweenRetries="1000" >
 			<db:select doc:name="Select(Updated Data)" doc:id="19414999-1406-48ac-8f0d-89881bd462a0" config-ref="Database_Config" >
-				<db:sql ><![CDATA[select 
-f.flightId, f.flightCode, f.price, f.departureDate, f.originAirport, 
-f.destinationAirport, f.bookedSeats, 
-p.planeType, p.totalSeats 
-from Flight f inner join Plane p 
+				<db:sql ><![CDATA[select
+f.flightId, f.flightCode, f.price, f.departureDate, f.originAirport,
+f.destinationAirport, f.bookedSeats,
+p.planeType, p.totalSeats
+from Flight f inner join Plane p
 on f.planeId = p.planeId
 where f.flightId = :wkId]]></db:sql>
 				<db:input-parameters ><![CDATA[#[{wkId: vars.ID}]]]></db:input-parameters>
@@ -377,11 +378,11 @@ output application/json
     <flow name="ID-existance-check-Flow" doc:id="e4bb0c26-4bae-42e3-bff2-d4162a3e74f2">
         <until-successful maxRetries="3" doc:name="Until Successful" doc:id="246b9cef-5207-4474-8736-cd11a1e2baf3" millisBetweenRetries="1000">
             <db:select doc:name="Select" doc:id="1098e770-f557-457c-9a97-e1b6e3148930" config-ref="Database_Config">
-                <db:sql><![CDATA[select 
-f.flightId, f.flightCode, f.price, f.departureDate, f.originAirport, 
-f.destinationAirport, f.bookedSeats, 
-p.planeType, p.totalSeats 
-from Flight f inner join Plane p 
+                <db:sql><![CDATA[select
+f.flightId, f.flightCode, f.price, f.departureDate, f.originAirport,
+f.destinationAirport, f.bookedSeats,
+p.planeType, p.totalSeats
+from Flight f inner join Plane p
 on f.planeId = p.planeId
 where f.flightId = :wkId]]></db:sql>
                 <db:input-parameters><![CDATA[#[{wkId: vars.ID}]]]></db:input-parameters>
@@ -482,7 +483,7 @@ payload]]></ee:set-variable>
             <when expression="#[sizeOf(vars.wkPlane) == 0]">
                 <logger level="INFO" doc:name="Logger" doc:id="57624385-66d5-4c5f-89e8-6dc226e7a1a0" message="2 phase commit" />
                 <until-successful maxRetries="3" doc:name="Until Successful" doc:id="d769e509-dac3-4a7d-b2b4-33aa79d4289e" millisBetweenRetries="1000">
-                    <try doc:name="Try" doc:id="6e5ce360-171f-4f92-aae1-e0914246b229" transactionType="XA">
+                    <try doc:name="Try" doc:id="6e5ce360-171f-4f92-aae1-e0914246b229">
                         <db:insert doc:name="Insert in to plane" doc:id="7b2e4482-f0b3-4519-bd28-349369f5cd90" config-ref="Database_Config">
                             <db:sql><![CDATA[insert into Plane(planeType, totalSeats)
 values (:planeType, :totalSeats)]]></db:sql>
@@ -505,7 +506,7 @@ values (:flightCode, :price, :departureDate, :originAirport, :destinationAirport
 	destinationAirport: vars.wkPayload.destination,
 	bookedSeats: vars.wkPayload.plane.totalSeats - vars.wkPayload.emptySeats,
 	planeId: valuesOf(payload[0])[0]
-	
+
 }]]]></db:input-parameters>
                         </db:insert>
                     </try>
@@ -524,7 +525,7 @@ values (:flightCode, :price, :departureDate, :originAirport, :destinationAirport
 	destinationAirport: vars.wkPayload.destination,
 	bookedSeats: vars.wkPayload.plane.totalSeats - vars.wkPayload.emptySeats,
 	planeId: vars.wkPlane[0].planeId
-	
+
 }]]]></db:input-parameters>
                     </db:insert>
                 </until-successful>
@@ -536,7 +537,7 @@ values (:flightCode, :price, :departureDate, :originAirport, :destinationAirport
         </db:select>
 		</until-successful>
     </flow>
-    
+
     <flow name="put-handle-update-Flow" doc:id="3c82f49e-13f0-4e63-9992-57404bf8db67">
         <until-successful maxRetries="3" doc:name="Until Successful" doc:id="b8fa122a-0e49-4661-95cd-9e5d70dc2826" millisBetweenRetries="1000">
             <db:select doc:name="Select(plane rec)" doc:id="2f3d1489-d962-4538-b63e-2d645e655416" config-ref="Database_Config">
@@ -561,7 +562,7 @@ payload]]></ee:set-variable>
             <when expression="#[sizeOf(vars.wkPlane) == 0]">
                 <logger level="INFO" doc:name="Logger" doc:id="c86aae2e-442c-4c96-9aa1-e12698675b91" message="2 phase commit" />
                 <until-successful maxRetries="3" doc:name="Until Successful" doc:id="cd6d8cc2-c090-488a-9ceb-64b265082947" millisBetweenRetries="1000">
-                    <try doc:name="Try" doc:id="9c4375bf-9057-45c5-a54d-f453098612d1" transactionType="XA">
+                    <try doc:name="Try" doc:id="9c4375bf-9057-45c5-a54d-f453098612d1">
                         <db:insert doc:name="Insert in to plane" doc:id="46393fe8-f1b7-48be-b688-9c9970eae1e9" config-ref="Database_Config">
                             <db:sql><![CDATA[insert into Plane(planeType, totalSeats)
 values (:planeType, :totalSeats)]]></db:sql>
@@ -612,6 +613,6 @@ where flightId = :wkId]]></db:sql>
                 </until-successful>
             </otherwise>
         </choice>
-		
+
     </flow>
 </mule>

@@ -1,0 +1,62 @@
+GET http://localhost:8080/flights
+client_id: aaa
+client_secret: bbb
+##
+
+GET http://localhost:8080/flights?destination=SFOX
+client_id: aaa
+client_secret: bbb
+
+##
+POST http://localhost:8080/flights
+client_id: aaa
+client_secret: bbb
+Content-Type: application/json
+{
+  "code": "ZX123",
+  "price": 599,
+  "departureDate": "2017/12/20",
+  "origin": "ORD",
+  "destination": "SFO",
+  "emptySeats": 100.0,
+  "plane": {
+    "type": "Boeing 747M1",
+    "totalSeats": 400
+  }
+}
+
+##
+
+PUT http://localhost:8080/flights/20
+client_id: aaa
+client_secret: bbb
+Content-Type: application/json
+{
+  "code": "GQ813",
+  "price": 891,
+  "departureDate": "2019/3/23",
+  "origin": "ORD",
+  "destination": "SFO",
+  "emptySeats": 30,
+  "plane": {
+    "type": "Boeing 747M2",
+    "totalSeats": 400
+  }
+}
+
+##
+DELETE http://localhost:8080/flights/24
+client_id: aaa
+client_secret: bbb
+
+
+##### Sceinario 1.2
+GET http://localhost:8080/airports
+client_id: aaa
+client_secret: bbb
+##
+## Sceinario 1.2
+GET http://localhost:8080/airports/SFO
+client_id: aaa
+client_secret: bbb
+

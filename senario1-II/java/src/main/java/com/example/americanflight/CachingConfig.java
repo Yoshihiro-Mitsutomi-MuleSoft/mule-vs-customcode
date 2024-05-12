@@ -22,7 +22,9 @@ public class CachingConfig {
                 .defaultSetup(c -> c.entryCapacity(2000))
                 .addCaches(
                         c -> c.name("flights").expireAfterWrite(60, TimeUnit.SECONDS).entryCapacity(10000),
-                        c -> c.name("flight").expireAfterWrite(60, TimeUnit.SECONDS).entryCapacity(10000));
+                        c -> c.name("flight").expireAfterWrite(60, TimeUnit.SECONDS).entryCapacity(10000),
+			c -> c.name("airports").expireAfterWrite(60, TimeUnit.SECONDS).entryCapacity(10000),
+			c -> c.name("airport-by-iata-code").expireAfterWrite(60, TimeUnit.SECONDS).entryCapacity(10000));
     }
 
 }

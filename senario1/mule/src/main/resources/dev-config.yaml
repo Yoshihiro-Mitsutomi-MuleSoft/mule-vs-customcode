@@ -1,0 +1,6 @@
+mySql:
+  host: "your-mysql-host.example.com"
+  port: "3306"
+  username: "your-username"
+  password: "your-password"
+  database: "your-database"

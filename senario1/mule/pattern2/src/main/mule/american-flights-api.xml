@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd  http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+    <http:listener-config name="american-flights-api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="american-flights-api-config" api="resource::68ef9520-24e9-4cf2-b2f5-620025690913:training-american-flights-api:2.0.5:raml:zip:american-flights-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" queryParamsStrictValidation="true"/>
+    <db:config name="Database_Config" doc:name="Database Config" doc:id="c872ce03-85cf-43b2-915d-bc4aadf88d02">
+        <db:my-sql-connection host="your_dbhost" port="service_port" user="your_account" password="your_password" database="your_demodb" />
+    </db:config>
+    <ee:object-store-caching-strategy name="Caching_Strategy" doc:name="Caching Strategy" doc:id="2613d2b3-ce23-44c2-9905-00882c8865b7" objectStore="ttl_60_min" keyGenerationExpression="#[attributes.queryParams.destination]"/>
+	<os:object-store name="ttl_60_min" doc:name="Object store" doc:id="299e1640-ae63-424c-93d6-ffec16474d12" entryTtl="60" persistent="false"/>
+	<db:config name="Database_Config_Error" doc:name="Database Config" doc:id="8a7d5c8c-54aa-4c7c-afa9-f5aec621fe8d" >
+		<db:my-sql-connection host="your_host" port="service_port" user="your_account" password="your_password" database="your_demodb" />
+	</db:config>
+	<flow name="american-flights-api-main">
+        <http:listener config-ref="american-flights-api-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+		<apikit:router config-ref="american-flights-api-config" />
+		<error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="7f71ab29-2238-4b7c-950b-6dc089b33eea" type="ANY">
+				<ee:transform doc:name="Transform Message" doc:id="eccd351f-3fd2-44a2-9058-22d638df586e">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var httpStatus = 500
+---
+{
+  message: error.description
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+			</on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="american-flights-api-console">
+        <http:listener config-ref="american-flights-api-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="american-flights-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\flights:american-flights-api-config">
+		<until-successful maxRetries="3" doc:name="Until Successful" doc:id="a531c696-a2b4-4c6d-9020-4e24cc875ae5" millisBetweenRetries="1000">
+			<ee:cache doc:name="Cache" doc:id="a9e24535-9953-4d77-b389-f2dbd330d1d6" cachingStrategy-ref="Caching_Strategy">
+				<db:select doc:name="Get flights" doc:id="cd048c34-cfff-4d36-86e1-017c572a32a7" config-ref="Database_Config">
+					<db:sql ><![CDATA[SELECT f.*, p.planeType, p.totalSeats, p.totalSeats - f.bookedSeats AS emptySeats
+FROM Flight f LEFT JOIN Plane p ON f.planeid = p.planeid
+WHERE (:destination IS NULL OR f.destinationAirport = :destination)]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	"destination": attributes.queryParams.destination
+}]]]></db:input-parameters>
+				</db:select>
+		</ee:cache>
+			</until-successful>
+		<choice doc:name="Choice" doc:id="197eaca0-a081-4463-98ab-591853b02ba0" >
+			<when expression="#[sizeOf(payload) == 0]">
+				<raise-error doc:name="Raise error" doc:id="6927c408-9606-400c-8367-d86c43401db1" type="APP:FLIGHT_NOT_FOUND" description="Flight not found."/>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="e032372f-f42f-4642-9a82-4f73aa1b000f">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	ID: payload01.flightId,
+	code: payload01.flightCode default "",
+	price: payload01.price default 0,
+	departureDate: payload01.departureDate as String {format: "yyyy/MM/dd"},
+	origin: payload01.originAirport default "",
+	destination: payload01.destinationAirport default "",
+	emptySeats: payload01.emptySeats default 0,
+	plane: {
+		"type": payload01.planeType,
+		totalSeats: payload01.totalSeats
+	}
+} as Object {
+	encoding: "UTF-8", mediaType: "application/json"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+			</otherwise>
+		</choice>
+    </flow>
+	<flow name="get:\flights\(ID):american-flights-api-config" doc:id="661ffb4c-fe3b-4b1c-bdba-3cefe912fe19">
+		<flow-ref doc:name="Get flight by ID" doc:id="a500a992-d49f-4427-a718-4fd1bcc5b139" name="get-flight-by-id" />
+    </flow>
+    <flow name="delete:\flights\(ID):american-flights-api-config">
+        <set-variable value="#[attributes.uriParams.ID as Number]" doc:name="Set flightId" doc:id="52078dcf-7c65-4efa-aa0e-c02a6df15fb9" variableName="flightId" />
+		<until-successful maxRetries="3" doc:name="Until Successful" doc:id="796afa74-eb7e-4fac-a3d6-07307f448fb9" millisBetweenRetries="1000">
+				<db:delete doc:name="Delete" doc:id="c977fca2-8e58-47eb-aae8-c81cc623ef15" config-ref="Database_Config">
+            <db:sql><![CDATA[DELETE FROM Flight
+WHERE flightId = :flightId]]></db:sql>
+            <db:input-parameters><![CDATA[#[{
+	'flightId': vars.flightId
+}]]]></db:input-parameters>
+        </db:delete>
+			</until-successful>
+		<choice doc:name="Choice" doc:id="e5174759-49db-443d-8345-5921656984b3" >
+			<when expression="payload == 0">
+				<raise-error doc:name="Raise error" doc:id="cf85f511-358a-4b14-9b64-f25935508070" type="APP:FLIGHT_NOT_FOUND" description="Flight not found." />
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "Flight deleted"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+			</otherwise>
+		</choice>
+    </flow>
+	<flow name="post:\flights:application\json:american-flights-api-config">
+        <set-variable value="#[payload]" doc:name="Set Params" doc:id="486153c2-5795-4174-9de3-721f28b00eb3" variableName="params" />
+		<flow-ref doc:name="Param Check" doc:id="8e0760ed-ac6e-4328-b40d-51a2219a4263" name="body-param-check"/>
+		<flow-ref doc:name="ID conflict check" doc:id="c4dbdce3-75c6-428d-986e-52e1608e58cf" name="flight-id-conflict-check" />
+		<try doc:name="Try" doc:id="edca9991-0319-4c12-85df-1ec6ed9fa220" transactionalAction="ALWAYS_BEGIN">
+			<flow-ref doc:name="Insert Plane" doc:id="91a83cb9-70d3-4dd2-bd97-fc9b437f62cf" name="insert-plane" />
+			<ee:transform doc:name="Transform Message" doc:id="00587945-65ba-4827-8525-c2d16652d6f9">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	code: vars.params.code,
+	price: vars.params.price as Number,
+	departureDate: vars.params.departureDate,
+	origin: vars.params.origin,
+	destination: vars.params.destination,
+	planeId: vars.planeId as Number default null,
+	bookedSeats: (vars.params.plane.totalSeats - vars.params.emptySeats) as Number default null
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+			<until-successful maxRetries="3" doc:name="Until Successful" doc:id="1806109d-cb9d-4dec-b26a-3bcd6cf2335b" millisBetweenRetries="1000">
+				<db:insert doc:name="Add Flight" doc:id="f6e51284-15bf-47c2-a3ab-2a15f5402e3b" config-ref="Database_Config" autoGenerateKeys="true" target="insertResult">
+                <db:sql><![CDATA[INSERT INTO Flight (
+  code,
+  price,
+  departureDate,
+  originAirport,
+  destinationAirport,
+  bookedSeats,
+  planeId
+) 
+VALUES (
+  :code,
+  :price,
+  :departureDate,
+  :origin,
+  :destination,
+  :bookedSeats,
+  :planeId
+)]]></db:sql>
+                <db:input-parameters><![CDATA[#[payload]]]></db:input-parameters>
+					<db:auto-generated-keys-column-names>
+						<db:auto-generated-keys-column-name value="flightId" />
+					</db:auto-generated-keys-column-names>
+            </db:insert>
+			</until-successful>
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c7bc604c-c146-4f2a-8757-b6548aa57d46" type="DB:*" />
+			</error-handler>
+        </try>
+		<ee:transform doc:name="Transform Message" doc:id="8d7157ab-0220-48f6-b537-f2f265a17f60" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "message": "Flight (ID: " ++ vars.insertResult.generatedKeys[0] as String ++ ") created."
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+    </flow>
+	<flow name="put:\flights\(ID):application\json:american-flights-api-config">
+        <ee:transform doc:name="Set Params" doc:id="6e8dd13d-23b6-43c0-999a-b2c816cc67c8" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="params" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	ID: payload.ID default null,
+	code: payload.code,
+	price: payload.price,
+	departureDate: payload.departureDate,
+	origin: payload.origin,
+	destination: payload.destination,
+	emptySeats: payload.emptySeats,
+	plane: {
+		"type": payload.plane."type",
+		totalSeats: payload.plane.totalSeats
+	}
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Param Check" doc:id="2a555ce3-a6eb-4fb1-938b-1906b9573c97" name="body-param-check" />
+		<flow-ref doc:name="Get flight by ID" doc:id="d096fb61-c09b-4fbb-a0d5-bbe6be1e88f7" name="get-flight-by-id" />
+		<set-variable value="#[payload]" doc:name="Flight info" doc:id="7dca6e79-bebf-4ad4-aa55-8e81b21b646c" variableName="flight"/>
+		<flow-ref doc:name="ID conflict check" doc:id="ee0a92f4-1b6d-43c4-8d5d-3ff4b0b2e863" name="flight-id-conflict-check"/>
+		<try doc:name="Try" doc:id="42710a3d-6505-42b0-b692-3d81498cad33" transactionalAction="ALWAYS_BEGIN">
+			<flow-ref doc:name="Insert Plane" doc:id="1e6fbd61-ba9f-4e9c-b0e1-e09bc7e38ef2" name="insert-plane"/>
+			<ee:transform doc:name="Transform Message" doc:id="e16a6535-9f62-4809-9da8-16cc7df24b10" >
+				<ee:message >
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="updatedInfo" ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	flightId: vars.flightId,
+	code: vars.params.code,
+	price: vars.params.price as Number,
+	departureDate: vars.params.departureDate,
+	origin: vars.params.origin,
+	destination: vars.params.destination,
+	planeId: vars.planeId as Number default null,
+	bookedSeats: (vars.params.plane.totalSeats - vars.params.emptySeats) as Number default null
+}]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<until-successful maxRetries="3" doc:name="Until Successful" doc:id="dedca7d8-d843-4f4c-8b33-0af321fc1a64" millisBetweenRetries="1000">
+				<db:update doc:name="Update Flight" doc:id="4e1433d1-007a-4ae9-86e3-6267a3309b00" config-ref="Database_Config">
+            <db:sql><![CDATA[UPDATE Flight SET
+  flightCode = :code,
+  price = :price,
+  departureDate = :departureDate,
+  originAirport = :origin,
+  destinationAirport = :destination,
+  bookedSeats = :bookedSeats,
+  planeId = :planeId
+WHERE flightId = :flightId]]></db:sql>
+            <db:input-parameters><![CDATA[#[vars.updatedInfo]]]></db:input-parameters>
+        </db:update>
+			</until-successful>
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="30c1b799-4caf-4a7a-8273-1099e77fcde7" type="DB:*">
+				</on-error-propagate>
+			</error-handler>
+		</try>
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+import diff from dw::util::Diff
+output application/json
+var original = vars.flight - "ID"
+var updated = vars.params - "ID"
+var diffs = diff(original, updated).diffs.path map ((item, index) -> item replace "(root)." with "")
+---
+{
+  message: "Flight updated.",
+  "original": original,
+  "updated": updated,
+  "updated rows": diffs
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+</mule>

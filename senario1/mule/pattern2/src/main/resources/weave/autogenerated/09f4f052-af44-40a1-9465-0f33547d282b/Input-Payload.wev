@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_09f4f052_af44_40a1_9465_0f33547d282b_Input_Payload = {| error: String |}
+

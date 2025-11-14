@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="uri-flight-id-check" doc:id="53e7f7ef-523e-4350-89ac-51749db81e5a">
+		<until-successful maxRetries="3" doc:name="Until Successful" doc:id="4bdde49a-95f5-4642-a676-e10c01167515" millisBetweenRetries="1000">
+			<db:select doc:name="Check Flight" doc:id="d7128c07-601c-4227-8318-3e055349705a" config-ref="Database_Config">
+			<db:sql><![CDATA[SELECT COUNT(*) AS flightCount
+FROM Flight
+WHERE flightId = :flightId]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	'flightId': attributes.uriParams.ID
+}]]]></db:input-parameters>
+		</db:select>
+		</until-successful>
+		<choice doc:name="Choice" doc:id="b4bb3445-76b3-466b-ae6c-4ec9b71ed773">
+			<when expression="#[payload[0].flightCount == 0]">
+				<raise-error doc:name="FLIGHT_NOT_FOUND" doc:id="bf1ac3e6-d0bf-4d21-9a08-340f925aae79" type="APP:FLIGHT_NOT_FOUND" description="Flight not found." />
+			</when>
+		</choice>
+	</flow>
+	<flow name="body-param-check" doc:id="0ec5bce9-0923-4407-adef-c799b48a9569">
+		<validation:matches-regex doc:name="Matches regex" doc:id="c710636a-b888-4389-a992-1ab164171edc" value="#[vars.params.departureDate as String]" regex="^\d{4}/\d{2}/\d{2}$" message="departureDate must match yyyy/MM/dd" />
+		<validation:is-true doc:name="departureDate Check" doc:id="ea91d315-33a7-4eef-9379-6e54d00b8ec2" message="departureDate must be a valid calendar date in format yyyy/MM/dd" expression="#[ vars.params.departureDate as Date {format: 'yyyy/MM/dd'} != null ]" />
+		<validation:is-true doc:name="emptySeats Check" doc:id="ad4d438f-bdda-4a55-8dc3-8f0e901ca593" message="emptySeats must be &gt;= 0" expression="#[ (vars.params.emptySeats default 0) &gt;= 0 ]" />
+	</flow>
+	<sub-flow name="flight-id-conflict-check" doc:id="c502b42d-b253-41c8-a4e4-d0adb91e3988">
+		<choice doc:name="Choice" doc:id="714e86d8-64d5-470f-af32-683f3a2f21f1">
+					<when expression="#[vars.params.ID != null]">
+						<choice doc:name="Choice" doc:id="a58d31d3-3302-48c4-9e9a-c645462dce41">
+							<when expression='#[attributes.method == "POST"]'>
+						<until-successful maxRetries="3" doc:name="Until Successful" doc:id="93ee829d-c8d1-4c5b-a64a-29ab716a49f4" millisBetweenRetries="1000">
+							<db:select doc:name="Check Flight" doc:id="ce2b74de-d7bf-48ea-85ef-6444384a3b7e" config-ref="Database_Config">
+							<db:sql><![CDATA[SELECT COUNT(*) AS flightCount
+FROM Flight
+WHERE flightId = :flightId]]></db:sql>
+							<db:input-parameters><![CDATA[#[{
+	'flightId': vars.params.ID
+}]]]></db:input-parameters>
+						</db:select>
+						</until-successful>
+						<choice doc:name="Choice" doc:id="3ed54646-a75f-48dd-a8f5-9e0d1c4eb154">
+							<when expression="#[payload[0].flightCount &gt; 0]">
+								<raise-error doc:name="ID_CONFLICTS" doc:id="6490a446-e19c-4ccd-a2c3-a216acfb7deb" type="APP:ID_CONFLICTS" description="Flight ID conflicts." />
+							</when>
+						</choice>
+							</when>
+					<otherwise>
+						<choice doc:name="Choice" doc:id="c010e6e3-b94a-4527-bee4-37c213fb8859">
+							<when expression="#[vars.flightId != vars.params.ID]">
+								<raise-error doc:name="ID_CONFLICTS" doc:id="e893e6ba-a5e1-490f-a037-fd1266c72470" type="APP:ID_CONFLICTS" description="Flight ID conflicts." />
+							</when>
+						</choice>
+					</otherwise>
+						</choice>
+					</when>
+				</choice>
+	</sub-flow>
+	<sub-flow name="get-flight-by-id" doc:id="d35d3a09-c4fd-4ab0-bfa0-e534453cc90c" >
+		<set-variable value="#[attributes.uriParams.ID as Number]" doc:name="Set flightId" doc:id="c3eb002e-a1f8-4fa5-b307-ac405ec8d4ce" variableName="flightId" />
+		<until-successful maxRetries="3" doc:name="Until Successful" doc:id="eae0ba82-c1d9-4def-a3a6-5f2141bf0aa3" millisBetweenRetries="1000">
+			<db:select doc:name="Select" doc:id="e74c350a-c1f2-46c1-b545-f0961f13cb90" config-ref="Database_Config">
+            <db:sql><![CDATA[SELECT f.*, p.planeType, p.totalSeats, p.totalSeats - f.bookedSeats AS emptySeats
+FROM Flight f LEFT JOIN Plane p ON f.planeid = p.planeid
+WHERE f.flightId = :flightId]]></db:sql>
+            <db:input-parameters><![CDATA[#[{
+  'flightId': vars.flightId
+}]]]></db:input-parameters>
+        </db:select>
+		</until-successful>
+		<choice doc:name="Choice" doc:id="686d82c6-a247-401b-bce9-5414b752750d">
+			<when expression="#[sizeOf(payload) == 0]">
+				<raise-error doc:name="Raise error" doc:id="8879e3e6-a648-45bc-99cc-6169d88ca3b0" type="APP:FLIGHT_NOT_FOUND" description="Flight not found." />
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Transform Message" doc:id="75c04741-ffb0-4eb6-b958-506a5e2088de">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var departureDate = payload[0].departureDate as String {format: "yyyy/MM/dd"}
+---
+{
+	ID: payload[0].flightId,
+	code: payload[0].flightCode,
+	price: payload[0].price,
+	departureDate: departureDate,
+	origin: payload[0].originAirport,
+	destination: payload[0].destinationAirport,
+	emptySeats: payload[0].emptySeats,
+	plane: {
+		"type": payload[0].planeType,
+		totalSeats: payload[0].totalSeats
+	}
+} as Object {
+	encoding: "UTF-8", mediaType: "application/json"
+}]]></ee:set-payload>
+            </ee:message>
+					<ee:variables />
+        </ee:transform>
+			</otherwise>
+		</choice>
+	</sub-flow>
+	<sub-flow name="insert-plane" doc:id="09f4f052-af44-40a1-9465-0f33547d282b" doc:description="このフローは、Flightの追加または更新リクエストに対し、以下の処理を実行する:&#10;　1. ペイロード (Body)におけるplane 情報の有無をチェック&#10;　　・ない場合: planeId にnullを設定、以降なにもしない&#10;　　・ある場合: 2以降に進む&#10;　2. emptySeats の値がtotalSeats よりも大きい場合、検証エラーを返す&#10;　3. planeType とtotalSeats でPlane テーブルを検索&#10;　　・レコードが存在する場合: 当該レコードのplaneId をセット&#10;　　・レコードが存在しない場合: ペイロードの内容に基づき、Planeテーブルに新たなレコードをINSERT">
+		<choice doc:name="Choice" doc:id="929d7ecb-c756-42dd-b7b4-5435db89c1a1">
+				<when expression="#[vars.params.plane != null]">
+					<validation:is-true doc:name="NumOfSeats check" doc:id="8f8208f0-b5d4-4a2e-abf5-31a1e40e34f8" expression="#[ vars.params.plane.totalSeats &gt;= vars.params.emptySeats ]" message="emptySeats must be smaller than totalSeats.">
+					</validation:is-true>
+					<until-successful maxRetries="3" doc:name="Until Successful" doc:id="4319e749-fec4-4b79-8b41-6225b1f606f2" millisBetweenRetries="1000">
+					<db:select doc:name="Check Plane" doc:id="8625afcd-a46b-4944-bd4a-2b53091dae2d" config-ref="Database_Config">
+						<db:sql><![CDATA[SELECT planeId
+FROM Plane
+WHERE planeType = :planeType AND totalSeats = :totalSeats]]></db:sql>
+						<db:input-parameters><![CDATA[#[{
+	"planeType": vars.params.plane."type",
+	"totalSeats": vars.params.plane.totalSeats
+}]]]></db:input-parameters>
+					</db:select>
+				</until-successful>
+				<choice doc:name="Choice" doc:id="968cb2b7-9efe-44e0-9562-6c469b774a0a">
+						<when expression="#[payload[0].planeId == null]">
+							<until-successful maxRetries="3" doc:name="Until Successful" doc:id="01e3f1f6-719d-4308-a20b-6daca488d543" millisBetweenRetries="1000">
+							<db:insert doc:name="Add Plane" doc:id="ce958948-daa4-4524-b2c4-b3e460133a7c" config-ref="Database_Config" target="insertResult" queryTimeoutUnit="MINUTES" autoGenerateKeys="true">
+            <db:sql><![CDATA[INSERT INTO Plane (planeType, totalSeats) VALUES (:planeType, :totalSeats)]]></db:sql>
+            <db:parameter-types />
+            <db:input-parameters><![CDATA[#[output application/java
+---
+{
+	"planeType": vars.params.plane."type",
+	"totalSeats": vars.params.plane.totalSeats
+}]]]></db:input-parameters>
+            <db:auto-generated-keys-column-names>
+                <db:auto-generated-keys-column-name value="planeId" />
+            </db:auto-generated-keys-column-names>
+        </db:insert>
+						</until-successful>
+						<set-variable value='#[vars.insertResult.generatedKeys[0]]' doc:name="planeId" doc:id="681f4b5a-4d5e-442f-902d-41931c1270d0" variableName="planeId"/>
+						</when>
+					<otherwise >
+						<set-variable value='#[payload[0].planeId]' doc:name="planeId" doc:id="4c9d1b5b-4c48-4672-b4c9-1295f3237438" variableName="planeId" />
+					</otherwise>
+					</choice>
+				</when>
+				<otherwise>
+					<set-variable value='null&#10;	planeId: null,&#10;	plane: {&#10;		"type": null,&#10;		totalSeats: null&#10;	}&#10;}' doc:name="planeId" doc:id="3c22f9ee-c6f5-4c25-ae73-08cef0f8729d" variableName="planeId" />
+				</otherwise>
+		</choice>
+	</sub-flow>
+</mule>

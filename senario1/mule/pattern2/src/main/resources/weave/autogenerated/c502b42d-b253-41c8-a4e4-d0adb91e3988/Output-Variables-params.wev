@@ -1,0 +1,18 @@
+%dw 2.0
+
+type auto_c502b42d_b253_41c8_a4e4_d0adb91e3988_Output_Variables_params = {
+  plane?: {
+    "type": String, 
+    totalSeats: Number, 
+    _?: Any
+  }, 
+  code: String, 
+  price: Number, 
+  origin: String, 
+  destination: String, 
+  ID?: Number, 
+  departureDate: String, 
+  emptySeats: Number, 
+  _?: Any
+}
+

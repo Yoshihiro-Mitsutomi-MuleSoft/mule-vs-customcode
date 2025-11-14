@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="american-flights-api-test-suite.xml" />
+	<munit:test name="american-flights-api-test-suite-american-flights-api-mainTest" doc:id="ffc35067-5dce-40d0-b759-ab1d2fd3d438" description="Test">
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to american-flights-api-main" doc:id="e84a6ab0-5770-4ab2-b5a3-356b327e926c" name="american-flights-api-main"/>
+		</munit:execution>
+	</munit:test>
+
+
+</mule>
